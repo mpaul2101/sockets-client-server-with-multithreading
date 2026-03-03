@@ -87,7 +87,22 @@ void handleClient(int conn_fd, int clientNo){
 
 int main(){
     std::cout<<"Server Pornit";
-        
+    std::cout<<"Port:"<<PORT<<"\n\n";
+    //socket() - creeam socketul de ascultare
+    //AF_INET = IPv4
+    //SOCK_STREAM = TCP
+    //0 = protocol implicit
+    int listen_fd =socket(AF_INET, SOCK_STREAM,0);
+    if (listen_fd < 0){
+        std::cout<<"SOCKET() ERROR";
+        return 1;
+    }
+    std::cout<< "SOCKET creat (fd = "<< listen_fd<< ")\n";
+    int opt = 1;
+    //permitem reutilizarea portului
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    
+
 }
 
     
