@@ -6,6 +6,7 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <cstring>
 
 
 #define PORT 8080
@@ -33,5 +34,60 @@ void handleClient(int conn_fd, int clientNo){
     char serverIP[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &clientInfo.sin_addr, clientIP, INET_ADDRSTRLEN );
     inet_ntop(AF_INET, &serverInfo.sin_addr, serverIP, INET_ADDRSTRLEN );
+
+    //nthos() network byte order, host byte order
+    int clientPort = ntohs(clientInfo.sin_port);
+    int serverPort = ntohs(serverInfo.sin_port);   // = 8080
+
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "\n[+] Client " << clientNo << " conectat!\n";
+        std::cout << "    IP client: " << clientIP << " | Port client: " << clientPort << "\n";
+        std::cout << "    IP server: " << serverIP << " | Port server: " << serverPort << "\n";
+    }
     
+    //Bucla de comunicare:
+    char buffer[BUFFER_SIZE];
+    while(true){
+        memset(buffer, 0 ,BUFFER_SIZE);
+        //recv() - primim date, returneaza nr. de bytes, 0 = client deconectat, -1 = eroare
+        int bytesReceived = recv(conn_fd, buffer, BUFFER_SIZE -1,0);
+
+        if(bytesReceived <=0 ){
+                 std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "\n[-] Client " << clientNo << " (" 
+                      << clientIP << ":" << clientPort << ") s-a deconectat.\n";
+            break;
+        }
+        std::string mesaj(buffer,bytesReceived);
+        //afisam pe server în formatul cerut
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "\n[SERVER] Mesaj de la Client " << clientNo 
+                      << ": \"" << mesaj << "\"\n";
+            std::cout << "  Adresa IP sursa:      " << clientIP   << "\n";
+            std::cout << "  Adresa IP destinatie: " << serverIP   << "\n";
+            std::cout << "  Port sursa:           " << clientPort << "\n";
+            std::cout << "  Port destinatie:      " << serverPort << "\n";
+        }
+
+        //construim si trimitem raspunsul spre client
+        std::string raspuns =
+            "[SERVER -> CLIENT " + std::to_string(clientNo) + "] \"" + mesaj + "\"\n"
+            "  Adresa IP sursa:      " + serverIP                    + "\n"
+            "  Adresa IP destinatie: " + clientIP                    + "\n"
+            "  Port sursa:           " + std::to_string(serverPort)  + "\n"
+            "  Port destinatie:      " + std::to_string(clientPort)  + "\n";
+
+        send(conn_fd, raspuns.c_str(), raspuns.size(), 0);
+    }
+
+    close(conn_fd);  //pe Linux: close(), nu closesocket()
 }
+
+int main(){
+    std::cout<<"Server Pornit";
+        
+}
+
+    
