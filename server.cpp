@@ -101,7 +101,21 @@ int main(){
     int opt = 1;
     //permitem reutilizarea portului
     setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    
+
+//bind()- asociem socketul la port
+ sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family      = AF_INET;
+    serv_addr.sin_port        = htons(PORT);   // htons = host→network byte order
+    serv_addr.sin_addr.s_addr = INADDR_ANY;    // acceptă pe orice interfață
+
+    if (bind(listen_fd, (sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Eroare bind()");
+        close(listen_fd);
+
+        return 1;
+    }
+    std::cout << "bind() pe portul " << PORT << "\n";
 
 }
 
