@@ -9,7 +9,7 @@
 #include <cstring>
 
 
-#define PORT 8080
+#define PORT 9090
 #define BUFFER_SIZE 1024
 
 std::mutex cout_mutex; //previne  amestecarea outputului 
@@ -116,7 +116,41 @@ int main(){
         return 1;
     }
     std::cout << "bind() pe portul " << PORT << "\n";
+//listen() — intram în mod ascultare
+    // 16 = dimensiunea cozii de conexiuni pending
 
+    if (listen(listen_fd, 16) < 0) {
+        perror("Eroare listen()");
+        close(listen_fd);
+        return 1;
+    }
+    std::cout << "listen() activ. Astept clienți...\n\n";
+
+    //BUCLA PRINCIPALA — acceptam clienti si cream thread pentru fiecare
+    int clientCounter = 0;
+
+    while (true) {
+        sockaddr_in cli_addr;
+        socklen_t cli_len = sizeof(cli_addr);
+
+        //accept() — blocheaza pana vine un client
+        //returneaza un NOU fd dedicat clientului respectiv
+        //listen_fd ramane liber sa accepte alti clienti în paralel
+        
+        int conn_fd = accept(listen_fd, (sockaddr*)&cli_addr, &cli_len);
+        if (conn_fd < 0) {
+            perror("Eroare accept()");
+            continue;
+        }
+
+        clientCounter++;
+
+        //cream thread separat pentru acest client
+        //detach() = thread-ul rulează independent
+        std::thread t(handleClient, conn_fd, clientCounter);
+        t.detach();
+    }
+
+    close(listen_fd);
+    return 0;
 }
-
-    
